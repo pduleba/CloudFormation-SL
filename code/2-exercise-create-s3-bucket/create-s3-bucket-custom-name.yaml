@@ -1,0 +1,10 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "S3 bucket creation with public access"
+Resources:
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: pduleba-cloud-formation-sl-s3-bucket
+      AccessControl: PublicRead
+...
