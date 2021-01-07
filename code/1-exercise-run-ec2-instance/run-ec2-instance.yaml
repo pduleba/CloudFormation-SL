@@ -1,6 +1,8 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "Example 1 :: running EC2 instance with defaults"
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-reference.html
 Resources:
 
   # EC2 instance
