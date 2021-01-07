@@ -1,0 +1,144 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: > # replace new line (\n) by space ( )
+  Run EC2 with parameters
+  Represents possible parameters types
+  with its validation and default values
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html
+Parameters:
+
+  # String + default
+  SecuritygroupDescriptionParameter:
+    Type: String
+    Description: Security group description
+    Default: My security group
+
+  # Number + validation
+  SecurityGroupPortParameter:
+    Type: Number
+    Description: Security group port
+    Default: 8080
+    MinValue: 1150
+    MaxValue: 65535
+
+  # String + validation + default
+  SecurityGroupIngressCIDRParameter:
+    Type: String
+    Description: Securoty group ingress CIDR
+    Default: 0.0.0.0/0
+    MinLength: 9
+    MaxLength: 18
+    AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+    ConstraintDescription: invalid CIDR
+
+  # String + validation + default
+  EC2InstanceTypeParameter:
+    Type: String
+    Description: EC2 instance type
+    Default: t2.micro
+    AllowedValues:
+      - t2.nano
+      - t2.micro
+      - t2.small
+    ConstraintDescription: invalid EC2 instance type
+
+  # String + sensitive
+  SSMParameterValueParameter:
+    Type: String
+    Description: Sensitive password string
+    Default: password
+    NoEcho: true
+    MinLength: 5
+    MaxLength: 10
+
+  # CommaDelimitedList
+  DBSubnetCIDRsParameter:
+    Type: CommaDelimitedList
+    Description: Database subnet CIDRs
+    Default: "172.31.48.0/20, 172.31.64.0/20, 172.31.80.0/20"
+
+  # AWS type
+  VPCIdParameter:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC identifier
+
+  # AWS type
+  KeyPairNameParameter:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: EC2 instance SSH key
+    ConstraintDescription: invalid key pair name
+
+  # AWS list type
+  SubnetGroupIdsParameter:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnet group identifiers
+
+  # AWS SSM
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html#aws-ssm-parameter-types
+  EC2InstanceAMIParameter: # Must exists
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM EC2 instance AMI identifier parameter value
+    Default: ami-parameter
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-reference.html
+Resources:
+
+  # EC2 instance
+  MyInstance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-01720b5f421cf0179" # !Ref EC2InstanceAMIParameter
+      InstanceType: !Ref EC2InstanceTypeParameter # Parameter
+      KeyName: !Ref KeyPairNameParameter
+      SubnetId: !Ref MySubnet1
+      # Trick
+      # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getatt.html
+      # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-instance.html#cfn-ec2-instance-securitygroups
+      SecurityGroupIds:
+        - !GetAtt MySecurityGroup.GroupId # Parameter
+
+  # Elastic IP
+  MyInstanceEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref MyInstance # Parameter
+
+  # Security Group
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Ref SecuritygroupDescriptionParameter # Parameter
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref SecurityGroupPortParameter # Parameter
+          ToPort: !Ref SecurityGroupPortParameter # Parameter
+          CidrIp: !Ref SecurityGroupIngressCIDRParameter # Parameter
+      VpcId: !Ref VPCIdParameter # Parameter
+
+  MySubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPCIdParameter
+      CidrBlock: !Select [0, !Ref DBSubnetCIDRsParameter] # Parameter
+
+  MySubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPCIdParameter
+      CidrBlock: !Select [1, !Ref DBSubnetCIDRsParameter] # Parameter
+
+  MySubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPCIdParameter
+      CidrBlock: !Select [2, !Ref DBSubnetCIDRsParameter] # Parameter
+
+  MySSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: my-parameter
+      Type: String
+      Value: !Ref SSMParameterValueParameter # Parameter
+
+...
