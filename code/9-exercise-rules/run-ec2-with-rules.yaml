@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Example of using conditions with EC2 instance creation
+Description: Example of using rules with EC2 instance creation
 
 Parameters:
   Environment:
