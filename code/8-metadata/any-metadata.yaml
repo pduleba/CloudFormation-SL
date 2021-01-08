@@ -1,0 +1,14 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Example of template with metadata
+
+Resources:
+  MyS3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: pduleba-cloud-formation-sl-s3-bucket
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/metadata-section-structure.html#metadata-section-structure-keys
+Metadata:
+  Owner: Pawel Duleba
+...

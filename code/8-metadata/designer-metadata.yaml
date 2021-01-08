@@ -1,0 +1,26 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Example of template with metadata for AWS Designer
+
+Resources:
+  MyS3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: pduleba-cloud-formation-sl-s3-bucket
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 9e554ab2-5f48-4752-bc42-30bb62f68774
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/metadata-section-structure.html#metadata-section-structure-keys
+Metadata:
+  'AWS::CloudFormation::Designer':
+    9e554ab2-5f48-4752-bc42-30bb62f68774:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -90
+        'y': 70
+      z: 1
+      embeds: []
+...
