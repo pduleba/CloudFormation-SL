@@ -1,0 +1,24 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create Security group and exporting output
+
+Resources:
+  # SSH Security Group
+  SSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Ssh Access"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/outputs-section-structure.html
+Outputs:
+  SSHSecurityGroup:
+    Value: !Ref SSHSecurityGroup
+    Description: Security group identifier
+    Export:
+      Name: SecurityGroupId # Exported name can be referenced by other stack(s)
+...
