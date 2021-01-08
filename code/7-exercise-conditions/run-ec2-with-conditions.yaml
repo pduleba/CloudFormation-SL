@@ -1,0 +1,28 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Example of using conditions with EC2 instance creation
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [dev, test, prod]
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/conditions-section-structure.html
+Conditions:
+  IsDev: !Equals [!Ref Environment, dev]
+  IsTest: !Equals [!Ref Environment, test]
+  IsProd: !Equals [!Ref Environment, prod]
+
+Resources:
+  EC2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-01720b5f421cf0179"
+      # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-conditions.html
+      InstanceType: !If [IsDev, "t2.micro", !If [IsTest, "t2.small", !If [IsProd, "t2.medium", !Ref "AWS::NoValue"]]]
+
+Outputs:
+  InstanceId:
+    Description: EC2 instance ID
+    Value: !Ref EC2Instance
+...
