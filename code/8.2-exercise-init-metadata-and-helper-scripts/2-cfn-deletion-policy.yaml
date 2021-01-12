@@ -1,0 +1,12 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "S3 bucket creation with deletion policy"
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-reference.html
+Resources:
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: pduleba-cloud-formation-sl-s3-bucket
+...

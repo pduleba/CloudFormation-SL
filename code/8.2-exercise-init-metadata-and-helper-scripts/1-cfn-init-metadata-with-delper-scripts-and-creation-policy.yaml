@@ -1,0 +1,145 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Init metadata, creation policy & helper scripts usage
+
+Parameters:
+  KeyPairNameParameter:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: EC2 instance SSH key
+    ConstraintDescription: invalid key pair name
+
+Resources:
+  MyInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Install a simple PHP application
+      # Triggered by https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-init.html & `UserData`
+      AWS::CloudFormation::Init:
+        config:
+          packages:
+            yum:
+              httpd: []
+              php: []
+          groups:
+            apache: {}
+          users:
+            "apache":
+              groups:
+                - "apache"
+          sources:
+            "/home/ec2-user/aws-cli": "https://github.com/aws/aws-cli/tarball/master"
+          files:
+            "/tmp/cwlogs/apacheaccess.conf":
+              content: !Sub |
+                [general]
+                state_file= /var/awslogs/agent-state
+                [/var/log/httpd/access_log]
+                file = /var/log/httpd/access_log
+                log_group_name = ${AWS::StackName}
+                log_stream_name = {instance_id}/apache.log
+                datetime_format = %d/%b/%Y:%H:%M:%S
+              mode: '000400'
+              owner: apache
+              group: apache
+            "/var/www/html/index.php":
+              content: !Sub |
+                <?php
+                echo '<h1>AWS CloudFormation sample PHP application for ${AWS::StackName}</h1>';
+                ?>
+              mode: '000644'
+              owner: apache
+              group: apache
+            "/etc/cfn/cfn-hup.conf":
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+              mode: "000400"
+              owner: "root"
+              group: "root"
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.MyInstance.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource MyInstance --region ${AWS::Region}
+              mode: "000400"
+              owner: "root"
+              group: "root"
+          commands:
+            test:
+              command: "echo \"$MAGIC\" > test.txt"
+              env:
+                MAGIC: "I come from the environment!"
+              cwd: "~"
+          services:
+            sysvinit:
+              httpd:
+                enabled: 'true'
+                ensureRunning: 'true'
+              sendmail:
+                enabled: 'false'
+                ensureRunning: 'false'
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-creationpolicy.html
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1 # Number of success signals
+        Timeout: PT5M # 5 minutes
+    Properties:
+      ImageId: ami-025a5da20e6ad4174 # Amazon Linux AMI (aws ssm get-parameters-by-path --path /aws/service/ami-amazon-linux-latest --query "Parameters[].Value")
+      InstanceType: t2.micro
+      KeyName: !Ref KeyPairNameParameter
+      SecurityGroups:
+        - !Ref MySecurityGroup
+      # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/install-LAMP.html
+      UserData:
+        Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            # Get the latest CloudFormation package
+            # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-helper-scripts-reference.html
+            yum update -y aws-cfn-bootstrap
+
+            # Start cfn-init - execute `AWS::CloudFormation::Init` metadata
+            # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-init.html
+            /opt/aws/bin/cfn-init -s ${AWS::StackId} -r MyInstance --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
+
+            # Start up the cfn-hup daemon to listen for changes to the EC2 instance metadata
+            # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-hup.html
+            /opt/aws/bin/cfn-hup || error_exit 'Failed to start cfn-hup'
+
+            # All done so signal success
+            # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-signal.html
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource MyInstance --region ${AWS::Region}
+
+            # Logs are in /var/log/cloud-init-output.log (for ec2-user data) & /var/log/cfn-init.log (for cfn-init)
+
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable HTTP and SSH access
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+        - CidrIp: 0.0.0.0/0
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+
+Outputs:
+  InstanceId:
+    Description: The EC2 instance ID
+    Value:
+      Ref: MyInstance
+  WebsiteURL:
+    Description: The EC2 instance DNS
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-sub.html
+    Value:
+      !Sub 'http://${MyInstance.PublicDnsName}'
+  PublicIP:
+    Description: The EC2 instance IP
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getatt.html
+    Value:
+      !GetAtt MyInstance.PublicIp
+...

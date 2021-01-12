@@ -1,0 +1,65 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Base template used to demonstrated Init metadata, creation policy & helper scripts usage
+
+Parameters:
+  KeyPairNameParameter:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: EC2 instance SSH key
+    ConstraintDescription: invalid key pair name
+
+Resources:
+  MyInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-025a5da20e6ad4174 # Amazon Linux AMI (aws ssm get-parameters-by-path --path /aws/service/ami-amazon-linux-latest --query "Parameters[].Value")
+      InstanceType: t2.micro
+      KeyName: !Ref KeyPairNameParameter
+      SecurityGroups:
+        - !Ref MySecurityGroup
+      # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/install-LAMP.html
+      UserData:
+        Fn::Base64: |
+           #!/bin/bash
+           yum update -y
+           yum install -y httpd24 php56 mysql55-server php56-mysqlnd
+           service httpd start
+           chkconfig httpd on
+           groupadd www
+           usermod -a -G www ec2-user
+           chown -R root:www /var/www
+           chmod 2775 /var/www
+           find /var/www -type d -exec chmod 2775 {} +
+           find /var/www -type f -exec chmod 0664 {} +
+           echo "<?php phpinfo(); ?>" > /var/www/html/phpinfo.php
+
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable HTTP and SSH access
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        FromPort: 80
+        IpProtocol: tcp
+        ToPort: 80
+      - CidrIp: 0.0.0.0/0
+        FromPort: 22
+        IpProtocol: tcp
+        ToPort: 22
+
+Outputs:
+  InstanceId:
+    Description: The EC2 instance ID
+    Value:
+      Ref: MyInstance
+  WebsiteURL:
+    Description: The EC2 instance DNS
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-sub.html
+    Value:
+      !Sub 'http://${MyInstance.PublicDnsName}'
+  PublicIP:
+    Description: The EC2 instance IP
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getatt.html
+    Value:
+      !GetAtt MyInstance.PublicIp
+...
