@@ -1,0 +1,23 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Template used to verify Cloud Formation Drift functionallity
+
+Resources:
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-stack-drift.html
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resource-import-supported-resources.html
+  SSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: ssh-security-group
+      GroupDescription: SSH Access
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+Outputs:
+  InstanceId:
+    Description: Security Group ID
+    Value: !Ref SSHSecurityGroup
+...
