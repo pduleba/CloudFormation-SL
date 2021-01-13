@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "PortParameter",
+    "ParameterValue": "8181"
+  },
+  {
+    "ParameterKey": "IngressCIDRParameter",
+    "ParameterValue": "0.0.0.0/0"
+  }
+]
