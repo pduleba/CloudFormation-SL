@@ -1,0 +1,49 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create Security group as a nestd stack template
+
+Parameters:
+  DescriptionParameter:
+    Type: String
+    Description: Security group description
+    Default: Security group
+    MinLength: 1
+
+  PortParameter:
+    Type: Number
+    Description: Security group port
+    Default: 8080
+    MinValue: 1150
+    MaxValue: 65535
+
+  IngressCIDRParameter:
+    Type: String
+    Description: Securoty group ingress CIDR
+    Default: 0.0.0.0/0
+    MinLength: 9
+    MaxLength: 18
+    AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+    ConstraintDescription: invalid CIDR
+
+  VPCIdParameter:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC identifier
+
+Resources:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Ref DescriptionParameter # Parameter
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref PortParameter # Parameter
+          ToPort: !Ref PortParameter # Parameter
+          CidrIp: !Ref IngressCIDRParameter # Parameter
+      VpcId: !Ref VPCIdParameter # Parameter
+
+
+Outputs:
+  Id:
+    Value: !Ref SecurityGroup
+    Description: Security group identifier
+...
